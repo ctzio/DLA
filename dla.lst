@@ -1,24 +1,17 @@
+OPENW 1
+INPUT "Enter number of particles 1-4000: ",particlenumber%
+CLEARW 1
+CLOSEW 1
+OPENW 2
+FULLW 2
+CLEARW 2
 DIM screen|(320,200)
-DIM precalc&(4000,1)
+DIM particles&(4000,1)
 th=90
-' Fill array screen with initial values
-FOR i=0 TO 179 STEP 0.5
-  x1=160+COSQ(th+i)*10
-  y1=100+SINQ(th+i)*10
-  x2=160-COSQ(th+i)*10
-  y2=y1
-  FOR j=x1 TO x2
-    screen|(j,y1)=1
-  NEXT j
-NEXT i
-counter=1
-screen_address%=XBIOS(2)
-' Load image
-DIM buffer|(32066-1)
-buf_address%=V:buffer|(0)
-BLOAD "stot8.pi1",buf_address%
-~XBIOS(6,L:buf_address%+2)
-RC_COPY buf_address%+34,0,0,320,200 TO screen_address%,0,0
+counter%=1
+COLOR 0
+screen|(160,100)=1
+' PLOT 160,100
 feed
 fractal
 saving
@@ -26,13 +19,24 @@ PROCEDURE feed
   ' place a particle in a random position on  the periphery of a circle
   ' of radius r
   fi=RAND(360)
-  r=15+INT((counter/3.14)^0.63)
+  SELECT counter%
+  CASE 0 TO 300
+    r=20
+  CASE 301 TO 1000
+    r=45
+  CASE 1001 TO 2000
+    r=65
+  CASE 2001 TO 3000
+    r=75
+  DEFAULT
+    r=90
+  ENDSELECT
   x=INT(160+r*COSQ(fi))
   y=INT(100+r*SINQ(fi))
   IF screen|(x,y)=1 THEN
     GOSUB feed
   ENDIF
-  IF screen|(x-1,y-1)=1 OR screen|(x-1,y)=1 OR screen|(x-1,y+1)=1 OR screen|(x,y-1)=1 OR screen|(x,y+1)=1 OR screen|(x+1,y-1)=1 OR screen|(x+1,y)=1 OR screen|(x+1,y+1)=1 THEN
+  IF screen|(x-1,y)=1 OR screen|(x,y-1)=1 OR screen|(x,y+1)=1 OR screen|(x+1,y)=1 OR then
     screen|(x,y)=1
     GOSUB feed
   ENDIF
@@ -43,56 +47,69 @@ PROCEDURE fractal
   ' If such a particle exists then the particle sticks and a new one is being
   ' released
   DO
-    REM  theta=RAND(360)
     n%=RANDOM(3)-1
     x=x+n%
+    ' COLOR 0
+    ' PLOT x,y
+    '   VSYNC
+    ' COLOR 1
+    ' PLOT x,y
     IF x<160-r THEN
-	x=165-r
+      x=165-r
     ENDIF
     IF x>160+r THEN
-	x=155+r
+      x=155+r
     ENDIF
     IF screen|(x,y)=1 THEN
-	GOSUB fractal
+      GOSUB fractal
     ENDIF
-    IF screen|(x-1,y-1)=1 OR screen|(x-1,y)=1 OR screen|(x-1,y+1)=1 OR screen|(x,y-1)=1 OR screen|(x,y+1)=1 OR screen|(x+1,y-1)=1 OR screen|(x+1,y)=1 OR screen|(x+1,y+1)=1 THEN
-	screen|(x,y)=1
-	PLOT x,y
-	insert=1
-	IF insert=1 THEN
-	  counter=counter+1
-	  precalc&(counter,0)=x
-	  precalc&(counter,1)=y
-	  GOSUB feed
-	ENDIF
+    IF screen|(x-1,y)=1 OR screen|(x,y-1)=1 OR screen|(x,y+1)=1 OR screen|(x+1,y)=1 THEN
+      screen|(x,y)=1
+      PLOT x,y
+      insert=1
+      IF insert=1 THEN
+        counter%=counter%+1
+        particles&(counter%,0)=x
+        particles&(counter%,1)=y
+        GOSUB feed
+      ENDIF
     ENDIF
-    REM theta=RAND(360)
     m%=RANDOM(3)-1
     y=y+m%
+    COLOR 0
+    ' PLOT x,y
+    ' VSYNC
+    ' COLOR 1
+    ' PLOT x,y
     IF y<100-r THEN
-	y=105-r
+      y=105-r
     ENDIF
     IF y>100+r THEN
-	y=95+r
+      y=95+r
     ENDIF
-    IF screen|(x-1,y-1)=1 OR screen|(x-1,y)=1 OR screen|(x-1,y+1)=1 OR screen|(x,y-1)=1 OR screen|(x,y+1)=1 OR screen|(x+1,y-1)=1 OR screen|(x+1,y)=1 OR screen|(x+1,y+1)=1 THEN
-	screen|(x,y)=1
-	PLOT x,y
-	insert=1
-	IF insert=1 THEN
-	  counter=counter+1
-	  precalc&(counter,0)=x
-	  precalc&(counter,1)=y
-	ENDIF
+    IF screen|(x-1,y)=1 OR screen|(x,y-1)=1 OR screen|(x,y+1)=1 OR screen|(x+1,y)=1 THEN
+      screen|(x,y)=1
+      PLOT x,y
+      insert=1
+      IF insert=1 THEN
+        counter%=counter%+1
+        particles&(counter%,0)=x
+        particles&(counter%,1)=y
+      ENDIF
     ENDIF
-    ' PRINT AT(1,1);x,y,counter,r
     COLOR y/10
-    IF counter>3500
-	GOSUB saving
+    IF counter%=particlenumber%
+      GOSUB saving
     ENDIF
   LOOP
 RETURN
 PROCEDURE saving
-  BSAVE "precalc.chr",V:precalc&(0,0),4000*2*2
+  OPEN "o",#1,"h:\PARTS.CSV"
+  WRITE #1,"x,y"
+  FOR i%=0 TO particlenumber%
+    PRINT #1,particles&(i%,0);",";particles&(i%,1)
+  NEXT i%
+  CLOSE #1
+  CLOSEW 2
   END
 RETURN
