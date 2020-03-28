@@ -1,0 +1,121 @@
+OPENW 1
+CLEARW 1
+INPUT "Enter number of particles 1-4000: ",particlenumber%
+CLEARW 1
+CLOSEW 1
+OPENW 2
+TITLEW #2,"DLA"
+FULLW 2
+CLEARW 2
+DIM screen|(320,200)
+DIM particles&(4000,1)
+th=90
+counter%=1
+COLOR 0
+screen|(160,100)=1
+PLOT 160,100
+t%=TIMER
+feed
+fractal
+saving
+PROCEDURE feed
+  ' place a particle in a random position on  the periphery of a circle
+  ' of radius r
+  fi=RAND(360)
+  SELECT counter%
+  CASE 0 TO 300
+    r=20
+  CASE 301 TO 1000
+    r=45
+  CASE 1001 TO 2000
+    r=65
+  CASE 2001 TO 3000
+    r=75
+  DEFAULT
+    r=90
+  ENDSELECT
+  x=INT(160+r*COSQ(fi))
+  y=INT(100+r*SINQ(fi))
+  IF screen|(x,y)=1 THEN
+    GOSUB feed
+  ENDIF
+  IF @checkstick(x,y)
+    GOSUB feed
+  ENDIF
+RETURN
+PROCEDURE fractal
+  ' This is the DLA algorithm. Particle follows brownian motion. In each step
+  ' a check is being performed for the existance of a neigbouring particle.
+  ' If such a particle exists then the particle sticks and a new one is being
+  ' released
+  DO
+    n%=RANDOM(3)-1
+    x=x+n%
+    ' COLOR 0
+    ' PLOT x,y
+    '   VSYNC
+    ' COLOR 1
+    ' PLOT x,y
+    IF x<160-r THEN
+      x=165-r
+    ENDIF
+    IF x>160+r THEN
+      x=155+r
+    ENDIF
+    IF screen|(x,y)>1 THEN
+      GOSUB fractal
+    ENDIF
+    IF @checkstick(x,y)
+      GOSUB feed
+    ENDIF
+    m%=RANDOM(3)-1
+    y=y+m%
+    COLOR 0
+    ' PLOT x,y
+    ' VSYNC
+    ' COLOR 1
+    ' PLOT x,y
+    IF y<100-r THEN
+      y=105-r
+    ENDIF
+    IF y>100+r THEN
+      y=95+r
+    ENDIF
+    IF @checkstick(x,y)
+      GOSUB feed
+    ENDIF
+    COLOR y/10
+    IF counter%=particlenumber%
+      GOSUB saving
+    ENDIF
+  LOOP
+RETURN
+FUNCTION checkstick(x,y)
+  IF screen|(x-1,y)>0 OR screen|(x,y-1)>0 OR screen|(x,y+1)>0 OR screen|(x+1,y)>0 THEN
+    screen|(x,y)=INT(y/10)
+    PLOT x,y
+    insert=1
+    IF insert=1 THEN
+      counter%=counter%+1
+      particles&(counter%,0)=x
+      particles&(counter%,1)=y
+    ENDIF
+    RETURN TRUE
+  ELSE
+    RETURN FALSE
+  ENDIF
+ENDFUNC
+PROCEDURE saving
+  totaltime=(TIMER-t%)/200
+  exectime$="Program completed in "+MKF$(totaltime)
+  OPEN "o",#1,"PARTS.CSV"
+  WRITE #1,"x,y"
+  FOR i%=0 TO particlenumber%
+    PRINT #1,particles&(i%,0);",";particles&(i%,1)
+  NEXT i%
+  CLOSE #1
+  ALERT 1,exectime$,1,"OK",ending
+  ~INP(2)
+  CLOSEW 2
+  END
+RETURN
